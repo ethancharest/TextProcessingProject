@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Email {
-    int id;
+    int id; //Email Identifier
     int label; // 1 = spam, 0 = not spam
-    String text;
-    List<String> words;
+    String text; //Raw email text content
+    List<String> words; 
     int[] features; // Count of distinguishing words
 
     public Email(int id, int label, String text) {
@@ -41,10 +41,11 @@ public class Email {
         }
     }
 
+    // gets the top distingishing words from each email
     public String getTopWords(int count) {
         List<String> uniqueWords = new ArrayList<>();
         List<Integer> frequencies = new ArrayList<>();
-    
+
         for (String word : words) {
             int index = uniqueWords.indexOf(word);
             if (index == -1) {
@@ -54,7 +55,7 @@ public class Email {
                 frequencies.set(index, frequencies.get(index) + 1);
             }
         }
-    
+
         List<String> topWords = new ArrayList<>();
         for (int i = 0; i < count && !uniqueWords.isEmpty(); i++) {
             int maxIndex = 0;
@@ -67,9 +68,8 @@ public class Email {
             uniqueWords.remove(maxIndex);
             frequencies.remove(maxIndex);
         }
-    
+
         return String.join(" ", topWords);
     }
-    
-    
+
 }

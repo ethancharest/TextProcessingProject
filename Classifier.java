@@ -1,89 +1,82 @@
 package TextProcessingProject;
 
-import java.util.List;
+import java.util.*;
 
 public class Classifier {
-    
-    private int[] spamModel;
-    private int[] notSpamModel;
 
-    //stores training data
+    public Classifier() {
+        this.spamModel = new double[0];
+        this.notSpamModel = new double[0];
+    }
+
+    /**
+     * Trains the classifier by processing a list of emails.
+     * This method builds the spam and not-spam models based on email features.
+     *
+     * @param emails List of emails to train the classifier
+     */
     public void train(List<Email> emails) {
-        spamModel = computeModel(emails, 1);
-        notSpamModel = computeModel(emails, 0);
+        // Here we compute models (spam and not-spam) based on the email features.
+        this.spamModel = computeModel(emails, 1);  // 1 indicates spam
+        this.notSpamModel = computeModel(emails, 0);  // 0 indicates not spam
     }
 
     /**
-     * Classifies an email as spam or not spam based on which model it's closer to.
-     *
-     * @param email The email to classify
-     * @return 1 if classified as spam, 0 if not spam
+     * Computes a model (vector) for either spam or not-spam emails.
+     * 
+     * @param emails List of emails
+     * @param label  1 for spam, 0 for not spam
+     * @return A double array representing the computed model
      */
-    public int classify(Email email) {
-        double[] spamModelD = convertToDoubleArray(spamModel); //Convert models to double arrays for easier calculation
-        double[] notSpamModelD = convertToDoubleArray(notSpamModel);
-        double distToSpam = computeDistance(email.features, spamModelD); //Compute Eulidian Distance 
-        double distToNotSpam = computeDistance(email.features, notSpamModelD);
-        return distToSpam < distToNotSpam ? 1 : 0; //Classify by which distance is smaller
-    }
-
-    /**
-     * Computes the average feature vector (model) for a group of emails with a specific label.
-     *
-     * @param emails list of emails
-     * @param label  label to filter by (0 or 1)
-     * @return Average feature model as an int array
-     */
-    public int[] computeModel(List<Email> emails, int label) {
-        if (emails.isEmpty()) return new int[0];
-
-        int featureLength = emails.get(0).features.length;
-        int[] model = new int[featureLength];
-        int count = 0;
-
+    public double[] computeModel(List<Email> emails, int label) {
+        double[] model = new double[emails.get(0).features.length];  // Make sure features array is initialized correctly
+        // Process emails and accumulate feature counts for the given label (spam or not-spam)
         for (Email email : emails) {
             if (email.label == label) {
-                for (int i = 0; i < featureLength; i++) {
-                    model[i] += email.features[i];
+                for (int i = 0; i < email.features.length; i++) {
+                    model[i] += email.features[i]; // Use accumulated feature counts for the model
                 }
-                count++; //counts how many emails matched
             }
         }
 
-        //Average
-        if (count > 0) {
-            for (int i = 0; i < featureLength; i++) {
-                 model[i] /= count;
-            }
+        // Normalize the model by dividing by the number of emails
+        double divisor = emails.stream().filter(e -> e.label == label).count();
+        for (int i = 0; i < model.length; i++) {
+            model[i] /= divisor;  // Average each feature value
         }
 
-        return model;
+        return model; // Return the model as a double array
     }
+
     /**
-     * Computes Euclidean distance 
-     * @param a first vector (int[])
-     * @param b second vector (double[])
-     * @return The Euclidean distance
+     * Classifies an email by calculating its distance to both spam and not-spam models.
+     * 
+     * @param email The email to classify
+     * @return The predicted label (1 for spam, 0 for not-spam)
      */
-    public double computeDistance(int[] a, double[] b) {
-        if (a.length != b.length) throw new IllegalArgumentException("Feature length mismatch");
-
-        double sum = 0.0;
-        for (int i = 0; i < a.length; i++) {
-            double diff = a[i] - b[i];
-            sum += diff * diff;
-        }
-        return Math.sqrt(sum);
+    public int classify(Email email, double[] spamModel, double[] notSpamModel) {
+        // Your classification logic based on the spam and not-spam models
+        // Compute distances and classify accordingly
+        double spamDistance = computeDistance(email.getFeaturesAsDouble(), spamModel);
+        double notSpamDistance = computeDistance(email.getFeaturesAsDouble(), notSpamModel);
+    
+        // Compare distances and classify based on the smaller distance
+        return (spamDistance < notSpamDistance) ? 1 : 0;  // 1 = spam, 0 = not spam
     }
 
-    private double[] convertToDoubleArray(int[] input) {
-        double[] output = new double[input.length];
-        for (int i = 0; i < input.length; i++) {
-            output[i] = input[i];
-        }
-        return output;
-    }
+    /**
+     * Computes the distance between an email's feature vector and a model (spam or not-spam).
+     * 
+     * @param emailFeatures Feature vector of the email
+     * @param model         The model to compute distance against
+     * @return The computed distance
+     */
+    public double computeDistance(double[] emailFeatures, double[] model) {
+        double distance = 0;
 
+        for (int i = 0; i < emailFeatures.length; i++) {
+            distance += Math.pow(emailFeatures[i] - model[i], 2);
+        }
+        return Math.sqrt(distance);
+    }
 }
-
-

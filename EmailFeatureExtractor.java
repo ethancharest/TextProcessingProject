@@ -1,70 +1,65 @@
 package TextProcessingProject;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
+/**
+ * This class extracts distinguishing words from a list of emails.
+ * It selects the most frequent words that help separate spam from non-spam emails.
+ */
 public class EmailFeatureExtractor {
 
-    List<String> distinguishingWords;
+    List<String> distinguishingWords; // List to hold the top distinguishing words
 
-    
     public EmailFeatureExtractor() {
         distinguishingWords = new ArrayList<>();
     }
 
     /**
-     * Selects the top distinguishing words that help separate spam from non-spam emails.
-    * This is based on how much more frequently a word appears in spam vs not-spam emails.
-    *
-    * @param emails List of email objects
-    * @param topN   Number of top distinguishing words to select
-    */
+     * Selects the top distinguishing words based on how frequently they appear in spam
+     * compared to not-spam emails.
+     *
+     * @param emails List of email objects
+     * @param topN   Number of top distinguishing words to select
+     */
     public void selectDistinguishingWords(List<Email> emails, int topN) {
-        List<String> allWords = new ArrayList<>(); //Stores all unique words found in emails 
-        List<Integer> wordSpamCounts = new ArrayList<>(); //Tracks how many times each word appears in spam
-        List<Integer> wordNotSpamCounts = new ArrayList<>(); //Tracks how many times each word appears in not spam
+        Map<String, int[]> wordCounts = new HashMap<>(); // Map to hold word counts for spam and not-spam
 
-        // Count how many times each word appears in spam vs not-spam
+        // Count occurrences of each word in spam vs. not-spam emails
         for (Email email : emails) {
             for (String word : email.words) {
-                int index = allWords.indexOf(word);
-                if (index == -1) {
-                    allWords.add(word);
-                    if (email.label == 1) { //spam
-                        wordSpamCounts.add(1);
-                        wordNotSpamCounts.add(0);
-                    } else { //not spam
-                        wordSpamCounts.add(0);
-                        wordNotSpamCounts.add(1);
-                    }
-                } else {
-                    if (email.label == 1) {
-                        wordSpamCounts.set(index, wordSpamCounts.get(index) + 1);
-                    } else {
-                        wordNotSpamCounts.set(index, wordNotSpamCounts.get(index) + 1);
-                    }
+                wordCounts.putIfAbsent(word, new int[2]); // Initialize word count if not present
+                if (email.label == 1) { // If the email is spam
+                    wordCounts.get(word)[0]++; // Increment spam count
+                } else { // If the email is not spam
+                    wordCounts.get(word)[1]++; // Increment not-spam count
                 }
             }
         }
-        //calculate "score" for each word based on the difference in usage between spam/not spam
-        List<Double> scores = new ArrayList<>();
-        for (int i = 0; i < allWords.size(); i++) {
-            scores.add((double) (wordSpamCounts.get(i) - wordNotSpamCounts.get(i)));
+
+        // Calculate scores for each word: Difference between spam and not-spam counts
+        List<Map.Entry<String, int[]>> wordList = new ArrayList<>(wordCounts.entrySet());
+        wordList.sort((entry1, entry2) -> {
+            int spamCount1 = entry1.getValue()[0];
+            int notSpamCount1 = entry1.getValue()[1];
+            int spamCount2 = entry2.getValue()[0];
+            int notSpamCount2 = entry2.getValue()[1];
+            int score1 = Math.abs(spamCount1 - notSpamCount1);
+            int score2 = Math.abs(spamCount2 - notSpamCount2);
+            return Integer.compare(score2, score1); // Sort by absolute score (descending)
+        });
+
+        // Select the top N distinguishing words based on the scores
+        for (int i = 0; i < topN && i < wordList.size(); i++) {
+            distinguishingWords.add(wordList.get(i).getKey());
         }
-        //Pick words with largest score values 
-        for (int i = 0; i < topN; i++) {
-            double bestScore = 0;
-            int bestIndex = -1;
-            for (int j = 0; j < scores.size(); j++) {
-                if (Math.abs(scores.get(j)) > Math.abs(bestScore)) {
-                    bestScore = scores.get(j);
-                    bestIndex = j;
-                }
-            }
-            if (bestIndex != -1) {
-                distinguishingWords.add(allWords.get(bestIndex)); //Add words to list
-                scores.set(bestIndex, 0.0);
-            }
-        }
+    }
+
+    /**
+     * Get the top distinguishing words for debugging or analysis.
+     *
+     * @return List of top distinguishing words
+     */
+    public List<String> getDistinguishingWords() {
+        return distinguishingWords;
     }
 }

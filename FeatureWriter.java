@@ -5,26 +5,33 @@ import java.util.*;
 
 public class FeatureWriter {
 
-    //Writes the Data (Features) found by our methods in the emails from the Dataset into a .csv file 
-    public static void writeEmailFeaturesToCSV(List<Email> emails, double[] spamModel,
-            double[] notSpamModel, Classifier classifier, String outputPath) {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(outputPath))) {
-            writer.println("ID,Label,TopWords,DistanceToSpamModel,DistanceToNotSpamModel,EucildeanDistance");
+    /**
+     * Writes email features to a CSV file.
+     * @param emails List of emails
+     * @param filePath The output file path
+     */
+    public static void writeEmailFeaturesToCSV(List<Email> emails, String filePath) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            writer.write("Email ID,Label,Features\n"); // CSV header
 
-            for (Email e : emails) {
-                String labelText = (e.label == 1) ? "spam" : "not spam";
-                double distToSpam = classifier.computeDistance(e.features, spamModel);
-                double distToNotSpam = classifier.computeDistance(e.features, notSpamModel);
-                double euclideanDistance = Math.abs(distToSpam - distToNotSpam);
+            for (Email email : emails) {
+                // Convert email features from int[] to double[] before writing to CSV
+                double[] featuresAsDouble = email.getFeaturesAsDouble(); // Convert to double[] for compatibility
 
-                writer.printf("%d,%s,\"%s\",%.4f,%.4f,%.4f\n", e.id, labelText, e.getTopWords(10), distToSpam,
-                        distToNotSpam,euclideanDistance);
+                // Write email ID and label to CSV
+                writer.write(email.id + "," + email.label + ",");
+
+                // Write the feature values as comma-separated strings
+                for (int i = 0; i < featuresAsDouble.length; i++) {
+                    writer.write(Double.toString(featuresAsDouble[i])); // Convert double to string
+                    if (i < featuresAsDouble.length - 1) {
+                        writer.write(","); // Add commas between values
+                    }
+                }
+                writer.write("\n"); // New line for the next email
             }
-
-            System.out.println("Email features written to: " + outputPath);
-
-        } catch (IOException ex) {
-            System.out.println("Failed to write features to CSV: " + ex.getMessage());
-        }   
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
